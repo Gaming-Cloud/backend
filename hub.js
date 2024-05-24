@@ -1,78 +1,46 @@
-'use strict';
-
-const readline = require('readline');
 const express = require('express');
-const gameEventEmitter = require('./utils/eventEmitter');
-const ticTacToe = require('./games/tictactoe');
-const hangman = require('./games/hangman');
-
-
 const app = express();
-const port = process.env.PORT || 3000;
+const http = require('http').Server(app);
+const io = require('socket.io')(http);
+const ticTacToe = require('./games/tictactoe');
 
-const games = {
-    ticTacToe,
-    hangman,
-};
+// Total Players
+let players = 0;
+// Id of player one and player 2
+let playerOne;
+let playerTwo;
 
-let currentGame = null;
-
-const rl = readline.createInterface({
-    input: process.stdin,
-    output: process.stdout
-});
-
-function promptUser(question) {
-    return new Promise(resolve => rl.question(question, resolve));
-}
-
-
-async function startGame(gameName) {
-    if (games[gameName]) {
-        console.log(`Starting ${gameName}...`);
-        currentGame = gameName;
-        games[gameName].start();
-        await gameLoop(gameName);
+// Run when a player is connected
+io.on("connection", socket => {
+    console.log("connected");
+    if (players === 0) {
+        // Player 1 initialized
+        socket.emit("message", 1);
+        playerOne = socket.id;
+        players++;
+    } else if (players === 1) {
+        // Player 2 initialized
+        socket.emit("message", 2);
+        playerTwo = socket.id;
+        players++;
+        // Starting the game only if player 2 is connected
+        io.to(playerOne).emit("turn", "Game Started you are first");
     } else {
-        console.log(`Game ${gameName} not found!`);
-        rl.close();
+        // Invalid amount of players
+        socket.emit("message", -1);
     }
-}
-
-async function gameLoop(gameName) {
-    while (true) {
-        if (gameName === 'ticTacToe') {
-            const move = await promptUser('Enter your move (row,col): ');
-            const [row, col] = move.split(',').map(Number);
-            if (row != null && col != null) {
-                ticTacToe.makeMove(row, col);
-            } else {
-                console.log('Invalid input. Please enter row,col.');
-            }
-        } else if (gameName === 'hangman') {
-            const letter = await promptUser('Enter a letter: ');
-            hangman.makeGuess(letter);
+    // Subtracts the total players when disconnected
+    socket.on("disconnect", () => {
+        if (players !== 0) {
+            players--;
         }
-    }
-}
-
-// Example of starting a game
-startGame('ticTacToe');
-// startGame('hangman');
-
-// Listen for events
-gameEventEmitter.on('gameOver', (gameName, result) => {
-    console.log(`Game ${gameName} is over. Result: ${result}`);
-    rl.close();
+        return;
+    })
 });
 
-gameEventEmitter.on('moveMade', (gameName, move) => {
-    console.log(`Move made in ${gameName}: ${move}`);
+console.log('tictactoe', ticTacToe);
+io.on('tic-tac-toe', ticTacToe(io))
+
+http.listen(3000, () => {
+    console.log('Server is running on port 3000');
 });
-
-app.listen(port, () =>
-    (`Server is running on http://localhost:${port}`)
-  );
-// Additional event listeners can be added here
-
-
