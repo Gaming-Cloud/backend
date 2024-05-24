@@ -1,0 +1,17 @@
+{
+  "name": "backend",
+  "version": "1.0.0",
+  "description": "This project aims to make a backend server that will host games like TicTacToe, Battleship, and Hangman. These will be accessible via terminals connected to the the server.",
+  "main": "hub.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "hub.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "events": "^3.3.0",
+    "express": "^4.19.2"
+  }
+}
