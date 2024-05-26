@@ -1,90 +1,86 @@
-const express = require('express');
-const http = require('http');
-const socketIo = require('socket.io');
-const categories = require('./games/hangman/categories.js');
+'use strict';
 
-const app = express();
-const server = http.createServer(app);
-const io = socketIo(server);
+require('dotenv').config();
+const PORT = process.env.PORT || 3000;
+const io = require('socket.io')(PORT);
 
-let games = [];  // List of games already played,, shown by game id
-
-app.get('/', (req, res) => {
-    res.send("Hangman Game Server");
-});
+const games = require('./games.json');
+const gamesList = Object.keys(games);
 
 io.on('connection', (socket) => {
-    console.log('A user connected: ' + socket.id);
+  console.log('User connected, ID', socket.id);
 
-    socket.emit('categoriesList', Object.keys(categories));
+  socket.emit('game-list', gamesList);
 
-    socket.on('requestGamesList', () => {
-        socket.emit('gamesList', games);
-    });
+  socket.on('request-games-list', () => {
+    socket.emit('game-list', gamesList);
+  });
 
-    socket.on('joinGame', (gameId) => {
-        let game = games.find(g => g.id === gameId);
-        if (game) {
-            socket.join(gameId);
-            io.to(gameId).emit('startGame', game);
+  socket.on('load-game', (gameTitle) => {
+    const gamePath = games[gameTitle];
+    if (gamePath) {
+      const loadGame = require(gamePath);
+      loadGame(socket);
+    } else {
+      socket.emit('game-not-found', gamesList);
+    }
+  });
+
+  socket.on('createGame', (category) => {
+    if (categories[category]) {
+      // Create a new game
+      let newGame = {
+        id: `game-${games.length + 1}`,
+        word: categories[category][Math.floor(Math.random() * categories[category].length)],
+        attempts: 6,
+        guesses: [],
+        category: category
+      };
+      games.push(newGame);
+      socket.join(newGame.id);
+      io.to(newGame.id).emit('startGame', newGame);
+    } else {
+      socket.emit('invalidCategory');
+    }
+  });
+
+  socket.on('guess', (data) => {
+    let game = games.find(g => g.id === data.gameId);
+    if (game) {
+      if (!game.guesses.includes(data.letter)) {
+        game.guesses.push(data.letter);
+        if (!game.word.includes(data.letter)) {
+          game.attempts--;
         }
-    });
+        io.to(game.id).emit('updateGame', game);
+      } else {
+        socket.emit('alreadyGuessed', data.letter);
+      }
+    }
+  });
 
-    socket.on('createGame', (category) => {
-        if (categories[category]) {
-            // Create a new game
-            let newGame = {
-                id: `game-${games.length + 1}`,
-                word: categories[category][Math.floor(Math.random() * categories[category].length)],
-                attempts: 6,
-                guesses: [],
-                category: category
-            };
-            games.push(newGame);
-            socket.join(newGame.id);
-            io.to(newGame.id).emit('startGame', newGame);
-        } else {
-            socket.emit('invalidCategory');
-        }
-    });
+  socket.on('guessWord', (data) => {
+    let game = games.find(g => g.id === data.gameId);
+    if (game) {
+      if (data.word === game.word) {
+        game.guesses = game.word.split('');
+        io.to(game.id).emit('updateGame', game);
+        io.to(game.id).emit('gameWon');
+      } else {
+        game.attempts = 0;
+        io.to(game.id).emit('updateGame', game);
+        io.to(game.id).emit('gameLost');
+      }
+    }
+  });
 
-    socket.on('guess', (data) => {
-        let game = games.find(g => g.id === data.gameId);
-        if (game) {
-            if (!game.guesses.includes(data.letter)) {
-                game.guesses.push(data.letter);
-                if (!game.word.includes(data.letter)) {
-                    game.attempts--;
-                }
-                io.to(game.id).emit('updateGame', game);
-            } else {
-                socket.emit('alreadyGuessed', data.letter);
-            }
-        }
-    });
-
-    socket.on('guessWord', (data) => {
-        let game = games.find(g => g.id === data.gameId);
-        if (game) {
-            if (data.word === game.word) {
-                game.guesses = game.word.split('');
-                io.to(game.id).emit('updateGame', game);
-                io.to(game.id).emit('gameWon');
-            } else {
-                game.attempts = 0;
-                io.to(game.id).emit('updateGame', game);
-                io.to(game.id).emit('gameLost');
-            }
-        }
-    });
-
-    socket.on('disconnect', () => {
-        console.log('User disconnected: ' + socket.id);
-    });
+  socket.on('disconnect', () => {
+    console.log('User disconnected: ' + socket.id);
+  });
 });
 
 server.listen(3000, () => {
-    console.log('Server is running on port 3000');
+  console.log('Server is running on port 3000');
 });
 
 
