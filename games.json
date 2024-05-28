@@ -1,5 +1,5 @@
 {
-  "Hangman": "./games/hangman",
-  "ticTacToe": "./tictactoe/tictactoe",
-  "Battleship": "./games/battleship"
+  "Hangman": "./games/hangman/index",
+  "Tic-Tac-Toe": "./games/tictactoe/index",
+  "Battleship": "./games/battleship/index"
 }
