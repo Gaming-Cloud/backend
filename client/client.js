@@ -5,9 +5,14 @@ const HUB_URL = process.env.HUB_URL;
 
 const io = require('socket.io-client');
 const socket = io.connect(HUB_URL);
-const readlineSync = require('readline-sync');
+const readline = require('readline');
 
-socket.on('connected', () => {
+const rl = readline.createInterface({
+  input: process.stdin,
+  output: process.stdout,
+});
+
+socket.on('connect', () => {
   console.log('Connected to the server');
 });
 
@@ -20,40 +25,50 @@ socket.on('game-not-found', (gamesList) => {
   displayGamesList(gamesList);
 });
 
+function displayGamesList(gamesList) {
+  console.log('Available games:');
+  gamesList.forEach((game, index) => {
+    console.log(`${index + 1}. ${game}`);
+  });
+
+  askForGameChoice(gamesList);
+}
+
+function askForGameChoice(gamesList) {
+  rl.question(`What game would you like to play? Enter a number between 1 and ${gamesList.length}: `, (answer) => {
+    const gameIndex = Number(answer) - 1;
+    if (Number.isInteger(gameIndex) && gameIndex >= 0 && gameIndex < gamesList.length) {
+      const chosenGame = gamesList[gameIndex];
+      console.log('chosen', chosenGame);
+      socket.emit('load-game', chosenGame);
+      console.log('Retrieving game...');
+    } else {
+      console.log(`"${answer}" is not a valid input. Your options are:`);
+      askForGameChoice(gamesList);
+    }
+  });
+}
+
 socket.on('game', (gameInfo) => {
   if (gameInfo.update) {
     console.log(gameInfo.update);
   }
   if (gameInfo.response) {
-    const response = readlineSync.question(gameInfo.response);
-    if (gameInfo.confirm) {
-      const confirm = readlineSync.question(gameInfo.confirm);
-      if (confirm === gameInfo.confirmation) {
+    rl.question(gameInfo.response, (response) => {
+      if (gameInfo.confirm) {
+        rl.question(gameInfo.confirm, (confirm) => {
+          if (confirm === gameInfo.confirmation) {
+            socket.emit(gameInfo.eventCode, response);
+          }
+        });
+      } else {
         socket.emit(gameInfo.eventCode, response);
       }
-    } else {
-      socket.emit(gameInfo.eventCode, response);
-    }
+    });
   }
 });
 
-function displayGamesList(gamesList) {
-  console.log('Available games:');
-  // eslint-disable-next-line no-constant-condition
-  while (true) {
-    gamesList.forEach((game, index) => {
-      console.log(`${index + 1}. ${game}`);
-    });
-    const gameChoice = readlineSync.question(`What game would you like to play? Enter a number between 1 and ${gamesList.length}: `);
-    const gameIndex = Number(gameChoice) - 1;
-  
-    if (Number.isInteger(gameIndex) && gameIndex >= 0 && gameIndex < gamesList.length) {
-      const chosenGame = gamesList[gameIndex];
-      socket.emit('load-game', chosenGame);
-      console.log('Retrieving game...');
-      break;
-    } else {
-      console.log(`"${gameChoice}" is not a valid input. Your options are:`);
-    }
-  }
-}
+socket.on('disconnect', () => {
+  console.log('Disconnected from the server');
+  rl.close();
+});
