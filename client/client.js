@@ -9,6 +9,7 @@ const readlineSync = require('readline-sync');
 
 socket.on('connected', () => {
   console.log('Connected to the server');
+  // socket.emit('request-games-list');
 });
 
 socket.on('game-list', (gamesList) => {
