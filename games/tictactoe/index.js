@@ -1,123 +1,60 @@
 'use strict';
 
-function ticTacToe (io) {
-  const PORT = process.env.PORT || 3000;
-
-  // Board of the tic tac toe. dictionary with key value pair
-  let board = {
-    1: '.',
-    2: '.',
-    3: '.',
-    4: '.',
-    5: '.',
-    6: '.',
-    7: '.',
-    8: '.',
-    9: '.',
+function ticTacToe(socket, Listgames) {
+  const board = {
+    1: '.', 2: '.', 3: '.',
+    4: '.', 5: '.', 6: '.',
+    7: '.', 8: '.', 9: '.',
   };
-    // All the possible combinations to be able to win
-  const winCoordinates = [[1, 2, 3], [4, 5, 6], [7, 8, 9], [3, 6, 9],
-    [2, 5, 8], [1, 4, 7], [3, 5, 7], [1, 5, 9]];
+  const winCoordinates = [
+    [1, 2, 3], [4, 5, 6], [7, 8, 9],
+    [1, 4, 7], [2, 5, 8], [3, 6, 9],
+    [1, 5, 9], [3, 5, 7],
+  ];
 
-  // Checks for win by looping through the winCoordinate array and seeing if there is a match
+  let playerOneTurn = true;
+
   function checkForWin(playerChar) {
-    let conflicts;
-    for (let i = 0; i < winCoordinates.length; i++) {
-      conflicts = 0;
-      for (let j = 0; j < winCoordinates[i].length; j++) {
-        if (board[winCoordinates[i][j]] === playerChar) {
-          conflicts++;
-        }
-        if (conflicts === 3) {
-          return true;
-        }
-      }
-    }
-    return false;
+    return winCoordinates.some(combo =>
+      combo.every(index => board[index] === playerChar),
+    );
   }
 
-  // Checks if there is a tie by seeing if all the board is full NOTE: only called when there is no win
   function checkTie() {
-    for (let i = 1; i <= Object.keys(board).length; i++) {
-      if (board[i] === '.') {
-        return false;
+    return Object.values(board).every(cell => cell !== '.');
+  }
+
+  function newGame() {
+    Object.keys(board).forEach(key => board[key] = '.');
+  }
+
+  socket.on('move', msg => {
+    const player = playerOneTurn ? 'x' : 'o';
+    if (board[msg] !== '.') {
+      socket.emit('game', { update: 'Spot already taken', eventCode: 'turn' })
+    } else {
+      board[msg] = player;
+      if (checkForWin(player)) {
+        socket.emit('game', { update: `Player ${playerOneTurn ? '1' : '2'} won`, eventCode: 'win' });
+        newGame();
+      } else if (checkTie()) {
+        socket.emit('game', { update: 'It\'s a TIE!!', eventCode: 'win' });
+        newGame();
+      } else {
+        playerOneTurn = !playerOneTurn;
+        socket.emit('game', { update: 'Board updated', board, eventCode: 'board' });
+        socket.emit('game', { update: '', response: 'Your move (1-9): ', eventCode: 'turn' });
       }
     }
-    return true;
-  }
-
-  // Resets the board and game
-  function newGame() {
-    Object.keys(board).forEach(function (key) {
-      board[key] = '.';
-    });
-  }
-
-  // Run when a player is connected
-  io.on('connection', socket => {
-    console.log('connected to gameLogic');
-    // Runs when a move is sent by the client
-    socket.on('move', msg => {
-      // If player one's turn
-      if (playerOneTurn) {
-        // Is spot is already played
-        if (board[msg] !== '.') {
-          io.to(playerOne).emit('turn', 'spot already taken');
-        } else {
-          // Changes spot
-          board[msg] = 'x';
-          // If won or tie then resets game and sends win or tie message
-          if (checkForWin('x')) {
-            io.emit('win', 'Player 1 won');
-            newGame();
-            return;
-          } else {
-            if (checkTie()) {
-              io.emit('win', 'It\'s a TIE!!');
-              newGame();
-              return;
-            }
-          }
-          // Sends the board and starts player 2's turn
-          io.emit('board', board);
-          io.to(playerTwo).emit('turn', '');
-          playerOneTurn = false;
-        }
-      } else {
-        if (board[msg] !== '.') {
-          io.to(playerTwo).emit('turn', 'spot already taken');
-        } else {
-          board[msg] = 'o';
-          // If won or tie then resets game and sends win or tie message
-          if (checkForWin('o')) {
-            io.emit('win', 'Player 2 won');
-            newGame();
-            return;
-          } else {
-            if (checkTie()) {
-              io.emit('win', 'It\'s a TIE!!');
-              newGame();
-              return;
-            }
-          }
-          // Sends the board and sets for for next player
-          io.emit('board', board);
-          io.to(playerOne).emit('turn', '');
-          playerOneTurn = true;
-        }
-      }
-    });
-    // Resign code
-    socket.on('exit', (msg) => {
-      if (socket.id === playerOne) {
-        io.emit('win', 'Game won by second player');
-        newGame();
-      } else if (socket.id === playerTwo) {
-        io.emit('win', 'Game won by first player');
-        newGame();
-      }
-    });
   });
+
+  socket.on('exit', () => {
+    socket.emit('game', { update: `Game won by ${playerOneTurn ? 'second' : 'first'} player`, eventCode: 'win' });
+    newGame();
+    Listgames();
+  });
+
+  socket.emit('game', { update: 'Board updated', board, eventCode: 'board' });
 }
 
 module.exports = ticTacToe;

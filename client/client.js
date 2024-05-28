@@ -14,6 +14,7 @@ const rl = readline.createInterface({
 
 socket.on('connect', () => {
   console.log('Connected to the server');
+  // socket.emit('request-games-list');
 });
 
 socket.on('game-list', (gamesList) => {
