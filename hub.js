@@ -26,63 +26,10 @@ io.on('connection', (socket) => {
     }
   });
 
-  socket.on('createGame', (category) => {
-    if (categories[category]) {
-      // Create a new game
-      let newGame = {
-        id: `game-${games.length + 1}`,
-        word: categories[category][Math.floor(Math.random() * categories[category].length)],
-        attempts: 6,
-        guesses: [],
-        category: category
-      };
-      games.push(newGame);
-      socket.join(newGame.id);
-      io.to(newGame.id).emit('startGame', newGame);
-    } else {
-      socket.emit('invalidCategory');
-    }
-  });
-
-  socket.on('guess', (data) => {
-    let game = games.find(g => g.id === data.gameId);
-    if (game) {
-      if (!game.guesses.includes(data.letter)) {
-        game.guesses.push(data.letter);
-        if (!game.word.includes(data.letter)) {
-          game.attempts--;
-        }
-        io.to(game.id).emit('updateGame', game);
-      } else {
-        socket.emit('alreadyGuessed', data.letter);
-      }
-    }
-  });
-
-  socket.on('guessWord', (data) => {
-    let game = games.find(g => g.id === data.gameId);
-    if (game) {
-      if (data.word === game.word) {
-        game.guesses = game.word.split('');
-        io.to(game.id).emit('updateGame', game);
-        io.to(game.id).emit('gameWon');
-      } else {
-        game.attempts = 0;
-        io.to(game.id).emit('updateGame', game);
-        io.to(game.id).emit('gameLost');
-      }
-    }
-  });
-
   socket.on('disconnect', () => {
-    console.log('User disconnected: ' + socket.id);
+    console.log('User disconnected, ID:', socket.id);
   });
 });
-
-server.listen(3000, () => {
-  console.log('Server is running on port 3000');
-});
-
 
 //  COMMENTED OUT BOTTOM PORITON TO TEST HANGMAN
 

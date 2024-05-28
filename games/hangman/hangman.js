@@ -1,11 +1,28 @@
 'use strict';
 
 function playHangman(socket) {
-  let gameId = null;
-  let selectedCategory = null;
-  let gameSelectionCompleted = false;
-
   const stickFigures = require('./hangman.json').stickFigures;
+  const game = {
+    update: '',
+    response: '',
+    confirm: true,
+    confirmation: null,
+    eventCode: 'game-start',
+  };
+
+  const gameStart = () => {
+    const preCategories = Object.keys(require('./hangman.json').categories);
+    const categories = preCategories.map((str) => str.replace(/([a-z])([A-Z])/g, '$1 $2').replace(/\b\w/g, char => char.toUpperCase()));
+    const 
+  };  
+
+  socket.emit('game', game);
+  socket.on('game-start', (choice) => {
+    switch(choice) {
+      case 'c':
+
+    }
+  });
 
   function handleGameSelection() {
     socket.emit('requestGamesList');
@@ -33,6 +50,55 @@ function playHangman(socket) {
       }
     });
   }
+
+  socket.on('createGame', (category) => {
+    if (categories[category]) {
+      // Create a new game
+      let newGame = {
+        id: `game-${games.length + 1}`,
+        word: categories[category][Math.floor(Math.random() * categories[category].length)],
+        attempts: 6,
+        guesses: [],
+        category: category
+      };
+      games.push(newGame);
+      socket.join(newGame.id);
+      io.to(newGame.id).emit('startGame', newGame);
+    } else {
+      socket.emit('invalidCategory');
+    }
+  });
+
+  socket.on('guess', (data) => {
+    let game = games.find(g => g.id === data.gameId);
+    if (game) {
+      if (!game.guesses.includes(data.letter)) {
+        game.guesses.push(data.letter);
+        if (!game.word.includes(data.letter)) {
+          game.attempts--;
+        }
+        io.to(game.id).emit('updateGame', game);
+      } else {
+        socket.emit('alreadyGuessed', data.letter);
+      }
+    }
+  });
+
+  socket.on('guessWord', (data) => {
+    let game = games.find(g => g.id === data.gameId);
+    if (game) {
+      if (data.word === game.word) {
+        game.guesses = game.word.split('');
+        io.to(game.id).emit('updateGame', game);
+        io.to(game.id).emit('gameWon');
+      } else {
+        game.attempts = 0;
+        io.to(game.id).emit('updateGame', game);
+        io.to(game.id).emit('gameLost');
+      }
+    }
+  });
+
 
   socket.on('startGame', (game) => {
     gameId = game.id;
