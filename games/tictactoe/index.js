@@ -1,60 +1,107 @@
 'use strict';
 
-function ticTacToe(socket, Listgames) {
-  const board = {
-    1: '.', 2: '.', 3: '.',
-    4: '.', 5: '.', 6: '.',
-    7: '.', 8: '.', 9: '.',
+function playTicTacToe(socket, listGames) {
+  let board = {
+    1: '.',
+    2: '.',
+    3: '.',
+    4: '.',
+    5: '.',
+    6: '.',
+    7: '.',
+    8: '.',
+    9: '.',
   };
-  const winCoordinates = [
-    [1, 2, 3], [4, 5, 6], [7, 8, 9],
-    [1, 4, 7], [2, 5, 8], [3, 6, 9],
-    [1, 5, 9], [3, 5, 7],
-  ];
 
+  const winCoordinates = [[1, 2, 3], [4, 5, 6], [7, 8, 9], [3, 6, 9], [2, 5, 8], [1, 4, 7], [3, 5, 7], [1, 5, 9]];
   let playerOneTurn = true;
 
-  function checkForWin(playerChar) {
-    return winCoordinates.some(combo =>
-      combo.every(index => board[index] === playerChar),
-    );
-  }
+  const game = {
+    update: '',
+    response: '',
+    confirm: false,
+    confirmation: null,
+    eventCode: 'game-start',
+  };
 
-  function checkTie() {
-    return Object.values(board).every(cell => cell !== '.');
-  }
-
-  function newGame() {
-    Object.keys(board).forEach(key => board[key] = '.');
-  }
-
-  socket.on('move', msg => {
-    const player = playerOneTurn ? 'x' : 'o';
-    if (board[msg] !== '.') {
-      socket.emit('game', { update: 'Spot already taken', eventCode: 'turn' })
-    } else {
-      board[msg] = player;
-      if (checkForWin(player)) {
-        socket.emit('game', { update: `Player ${playerOneTurn ? '1' : '2'} won`, eventCode: 'win' });
-        newGame();
-      } else if (checkTie()) {
-        socket.emit('game', { update: 'It\'s a TIE!!', eventCode: 'win' });
-        newGame();
-      } else {
-        playerOneTurn = !playerOneTurn;
-        socket.emit('game', { update: 'Board updated', board, eventCode: 'board' });
-        socket.emit('game', { update: '', response: 'Your move (1-9): ', eventCode: 'turn' });
+  const checkForWin = (playerChar) => {
+    for (let i = 0; i < winCoordinates.length; i++) {
+      if (winCoordinates[i].every(index => board[index] === playerChar)) {
+        return true;
       }
     }
+    return false;
+  };
+
+  const checkTie = () => {
+    return Object.values(board).every(cell => cell !== '.');
+  };
+
+  const newGame = () => {
+    board = {1: '.', 2: '.', 3: '.', 4: '.', 5: '.', 6: '.', 7: '.', 8: '.', 9: '.'};
+  };
+
+  const displayBoard = () => {
+    return `\n${board[1]} | ${board[2]} | ${board[3]}\n${board[4]} | ${board[5]} | ${board[6]}\n${board[7]} | ${board[8]} | ${board[9]}\n`;
+  };
+
+  const gameStart = () => {
+    game.update = 'Starting a new game of Tic-Tac-Toe.\n' + displayBoard();
+    game.response = 'Player 1, choose a position (1-9):';
+    game.eventCode = 'move';
+    socket.emit('game', game);
+  };
+
+  gameStart();
+
+  socket.on('move', (msg) => {
+    const position = parseInt(msg, 10);
+
+    if (!Number.isInteger(position) || position < 1 || position > 9 || board[position] !== '.') {
+      game.update = 'Invalid move! Try again.\n' + displayBoard();
+      game.response = playerOneTurn ? 'Player 1, choose a position (1-9):' : 'Player 2, choose a position (1-9):';
+      socket.emit('game', game);
+      return;
+    }
+
+    board[position] = playerOneTurn ? 'X' : 'O';
+
+    if (checkForWin(playerOneTurn ? 'X' : 'O')) {
+      game.update = `Player ${playerOneTurn ? 1 : 2} wins!\n` + displayBoard();
+      game.response = 'Would you like to play again? Y/N:';
+      game.eventCode = 'game-restart';
+      socket.emit('game', game);
+      newGame();
+      return;
+    }
+
+    if (checkTie()) {
+      game.update = 'It\'s a TIE!!\n' + displayBoard();
+      game.response = 'Would you like to play again? Y/N:';
+      game.eventCode = 'game-restart';
+      socket.emit('game', game);
+      newGame();
+      return;
+    }
+
+    playerOneTurn = !playerOneTurn;
+    game.update = `Player ${playerOneTurn ? 1 : 2}'s turn.\n` + displayBoard();
+    game.response = `Player ${playerOneTurn ? 1 : 2}, choose a position (1-9):`;
+    game.eventCode = 'move';
+    socket.emit('game', game);
   });
 
-  socket.on('exit', () => {
-    socket.emit('game', { update: `Game won by ${playerOneTurn ? 'second' : 'first'} player`, eventCode: 'win' });
-    newGame();
-    Listgames();
+  socket.on('game-restart', (choice) => {
+    const upperChoice = choice.toUpperCase();
+    if (upperChoice === 'Y') {
+      gameStart();
+    } else if (upperChoice === 'N') {
+      listGames();
+    } else {
+      game.update = 'Invalid response. ' + game.update;
+      socket.emit('game', game);
+    }
   });
-
-  socket.emit('game', { update: 'Board updated', board, eventCode: 'board' });
 }
 
-module.exports = ticTacToe;
+module.exports = playTicTacToe;
