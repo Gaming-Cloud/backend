@@ -8,6 +8,8 @@ Wajiha Khan, Jed Staley, Demarquies Jolley
 
 The Game Hub project involves developing a backend server that hosts classic games like Hangman, Tic Tac Toe, and other mini-games. Users will access the Game Hub through terminals connected to the server, providing a centralized platform for gaming. The project focuses on backend development to implement game logic, scoring, and multiplayer functionality. Quality assurance will ensure smooth operation, and the project will culminate in the deployment of the Game Hub server for users to enjoy classic gaming experiences.
 
+[CONNECT FOUR INSTRUCTIONS](./games/connect-four/README.md)
+
 ## Technology Stack
 
 - Node.js
@@ -16,7 +18,7 @@ The Game Hub project involves developing a backend server that hosts classic gam
 - Dotenv
 - Chance
 
-Deployment: Render.com
+- Deployment: Render.com
 
 ## Making a Game
 
