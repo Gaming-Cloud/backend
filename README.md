@@ -22,9 +22,9 @@ Deployment: Render.com
 
 To add a game, make a new folder in the `games` folder. Add a property to the `games.json` object. The key should be your game's title in Title Case, and the value should be the path to your game's main file in its folder from `hub.js`. 
 
-Your main file will need to export a function which will be imported by the hub (the import will be automatic if you have set up your line in `games.json` correctly). This function will be run immediately when the user selects your game, with two arguments: the socket and the listGames function. 
+Your main file will need to export a function which will be imported by the hub (the import will be automatic if you have set up your line in `games.json` correctly). This function will be run immediately when the user selects your game, with two arguments: `socket` and the `listGames` function. 
 
-The socket is what it sounds like; it's the socket for the current user. The listGames function should be called with no arguments whenever the user expresses that they would like to return to the main menu.
+The socket is what it sounds like; it's the socket for the current user. The `listGames` function should be called with no arguments whenever the user expresses that they would like to return to the main menu.
 
 ### User Communication
 
@@ -50,7 +50,7 @@ The properties are used in the following ways:
   - `update` should be a string which will be logged to the user's console immediately
   - `response` should be a string which will be logged to the user's console immediately before requiring user input
   - `confirm` should be a Boolean value indicating whether the client should have to confirm their input
-  - `eventCode` should a string which will be the event ID on the client's responding socket.emit
+  - `eventCode` should a string which will be the event ID on the client's responding `socket.emit`
 
 For a more thorough understanding, here is how the client deals with all communication from games:
 
