@@ -9,7 +9,7 @@ function playConnectFour(socket, listGames) {
   let currentPlayer = '🔵';
   let gameActive = true;
   let isSinglePlayer = null; 
-  
+
   socket.emit('game', { update: 'Starting a new game of Connect Four.\nDo you want to play with a friend or against the computer?\n1. Friend\n2. Computer', response: 'Enter 1 or 2:', eventCode: 'choose-mode' });
 
   socket.on('choose-mode', (mode) => {
@@ -148,6 +148,7 @@ function playConnectFour(socket, listGames) {
     }
     return renderedBoard;
   }
+
 }
 
 module.exports = playConnectFour;
