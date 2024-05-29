@@ -78,6 +78,7 @@ socket.on('game', (game) => {
         }
       });
     }
+
   }
   getResponse();
 });

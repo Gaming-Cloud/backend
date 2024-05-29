@@ -6,9 +6,9 @@ function playHangman(socket, listGames) {
   const categories = preCategories.map((str) => str.replace(/([a-z])([A-Z])/g, '$1 $2').replace(/\b\w/g, char => char.toUpperCase()));
   const stickFigures = require('./data.json').stickFigures;
   
-  let stage = 0;
-  let word = '';
-  let shownWord = '';
+  let stage;
+  let word;
+  let shownWord;
 
   const game = {
     update: '',
@@ -24,6 +24,9 @@ function playHangman(socket, listGames) {
   };
 
   const gameStart = () => {
+    stage = 0;
+    word = '';
+    shownWord = '';
     game.update = 'Available categories:';
     for (let i = 0; i < categories.length; i++) {
       game.update += `\n${i + 1}. ${categories[i]}`;
