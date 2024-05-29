@@ -11,8 +11,10 @@ The Game Hub project involves developing a backend server that hosts classic gam
 ## Technology Stack
 
 - Node.js
-- Express
+- Readline +(sync)
 - Socket.io
+- Dotenv
+- Chance
 
 Deployment: Render.com
 
