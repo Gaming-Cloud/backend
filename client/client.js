@@ -12,16 +12,22 @@ const rl = readline.createInterface({
   output: process.stdout,
 });
 
+const clearScreen = () => {
+  process.stdout.write('\x1Bc');
+};
+
 socket.on('connect', () => {
   console.log('Connected to the server');
   // socket.emit('request-games-list');
 });
 
 socket.on('game-list', (gamesList) => {
+  clearScreen();
   displayGamesList(gamesList);
 });
 
 socket.on('game-not-found', (gamesList) => {
+  clearScreen();
   console.log('I\'m sorry, that game isn\'t working right now. Please choose again.');
   displayGamesList(gamesList);
 });
@@ -40,10 +46,11 @@ function askForGameChoice(gamesList) {
     const gameIndex = Number(answer) - 1;
     if (Number.isInteger(gameIndex) && gameIndex >= 0 && gameIndex < gamesList.length) {
       const chosenGame = gamesList[gameIndex];
-      console.log('chosen', chosenGame);
+      clearScreen();
       socket.emit('load-game', chosenGame);
       console.log('Retrieving game...');
     } else {
+      clearScreen();
       console.log(`"${answer}" is not a valid input. Your options are:`);
       askForGameChoice(gamesList);
     }
@@ -51,6 +58,7 @@ function askForGameChoice(gamesList) {
 }
 
 socket.on('game', (gameInfo) => {
+  clearScreen();
   if (gameInfo.update) {
     console.log(gameInfo.update);
   }
@@ -70,6 +78,7 @@ socket.on('game', (gameInfo) => {
 });
 
 socket.on('disconnect', () => {
+  clearScreen();
   console.log('Disconnected from the server');
   rl.close();
 });
