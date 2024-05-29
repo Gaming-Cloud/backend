@@ -57,24 +57,30 @@ function askForGameChoice(gamesList) {
   });
 }
 
-socket.on('game', (gameInfo) => {
-  clearScreen();
-  if (gameInfo.update) {
-    console.log(gameInfo.update);
+socket.on('game', (game) => {
+  function getResponse() {
+    clearScreen();
+    if (game.update) {
+      console.log(game.update);
+    }
+    if (game.response) {
+      rl.question(game.response, (response) => {
+        if (game.confirm) {
+          rl.question(`You entered: "${response}"\nAre you sure? Y/N: `, (confirm) => {
+            if (confirm === 'Y' || confirm === 'y') {
+              socket.emit(game.eventCode, response);
+            } else {
+              getResponse();
+            }
+          });
+        } else {
+          socket.emit(game.eventCode, response);
+        }
+      });
+    }
+
   }
-  if (gameInfo.response) {
-    rl.question(gameInfo.response, (response) => {
-      if (gameInfo.confirm) {
-        rl.question(gameInfo.confirm, (confirm) => {
-          if (confirm === gameInfo.confirmation) {
-            socket.emit(gameInfo.eventCode, response);
-          }
-        });
-      } else {
-        socket.emit(gameInfo.eventCode, response);
-      }
-    });
-  }
+  getResponse();
 });
 
 socket.on('disconnect', () => {
