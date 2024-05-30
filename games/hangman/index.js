@@ -14,7 +14,6 @@ function playHangman(socket, listGames) {
     update: '',
     response: '',
     confirm: false,
-    confirmation: null,
     eventCode: 'game-start',
   };
 
