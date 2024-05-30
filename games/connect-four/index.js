@@ -1,13 +1,33 @@
 'use strict';
 
+const opponent = require('./opponent');
+
 function playConnectFour(socket, listGames) {
   const rows = 6;
   const columns = 7;
   let board = Array.from({ length: rows }, () => Array(columns).fill(null));
   let currentPlayer = '🔵';
   let gameActive = true;
+  let isSinglePlayer = null; 
 
-  socket.emit('game', { update: renderBoard(), response: 'Enter a column (0-6) to drop your disc: ', eventCode: 'make-move' });
+  socket.emit('game', { update: 'Starting a new game of Connect Four.\nDo you want to play with a friend or against the computer?\n1. Friend\n2. Computer', response: 'Enter 1 or 2:', eventCode: 'choose-mode' });
+
+  socket.on('choose-mode', (mode) => {
+    mode = mode.trim().toLowerCase();
+    if (mode === '1') {
+      isSinglePlayer = false;
+      startGame();
+    } else if (mode === '2') {
+      isSinglePlayer = true;
+      startGame();
+    } else {
+      socket.emit('game', { update: 'Invalid choice. Please enter 1 or 2.', response: 'Enter 1 or 2:', eventCode: 'choose-mode' });
+    }
+  });
+
+  function startGame() {
+    socket.emit('game', { update: renderBoard(), response: `Player ${currentPlayer}'s turn. Enter a column (0-6): `, eventCode: 'make-move' });
+  }
 
   socket.on('make-move', (column) => {
     if (!gameActive) return;
@@ -37,8 +57,31 @@ function playConnectFour(socket, listGames) {
     }
 
     currentPlayer = currentPlayer === '🔵' ? '🟣' : '🔵';
-    socket.emit('game', { update: renderBoard(), response: `Player ${currentPlayer}'s turn. Enter a column (0-6): `, eventCode: 'make-move' });
+    if (isSinglePlayer && currentPlayer === '🟣') {
+      const aiMove = opponent.makeMove(board, columns, rows, currentPlayer);
+      makeAIMove(aiMove);
+    } else {
+      socket.emit('game', { update: renderBoard(), response: `Player ${currentPlayer}'s turn. Enter a column (0-6): `, eventCode: 'make-move' });
+    }
   });
+
+  function makeAIMove(column) {
+    const row = dropDisc(column);
+    if (checkWin(row, column)) {
+      gameActive = false;
+      socket.emit('game', { update: renderBoard(), response: `Player ${currentPlayer} wins!`, eventCode: null });
+      return;
+    }
+
+    if (board.flat().every(cell => cell !== null)) {
+      gameActive = false;
+      socket.emit('game', { update: renderBoard(), response: 'The game is a draw!', eventCode: null });
+      return;
+    }
+
+    currentPlayer = currentPlayer === '🔵' ? '🟣' : '🔵';
+    socket.emit('game', { update: renderBoard(), response: `Player ${currentPlayer}'s turn. Enter a column (0-6): `, eventCode: 'make-move' });
+  }
 
   function dropDisc(column) {
     for (let row = rows - 1; row >= 0; row--) {
@@ -95,7 +138,7 @@ function playConnectFour(socket, listGames) {
     for (let row = 0; row < rows; row++) {
       for (let col = 0; col < columns; col++) {
         if (board[row][col] === null) {
-          renderedBoard += '⚪️'; // Empty space
+          renderedBoard += '⚪️';
         } else {
           renderedBoard += board[row][col];
         }
@@ -105,6 +148,7 @@ function playConnectFour(socket, listGames) {
     }
     return renderedBoard;
   }
+
 }
 
 module.exports = playConnectFour;
