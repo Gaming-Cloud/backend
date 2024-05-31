@@ -11,6 +11,9 @@ The Game Hub project involves developing a backend server that hosts classic gam
 ## Instructions
 
 [CONNECT FOUR](./games/connect-four/README.md)
+[TIC TAC TOE](./games/tictactoe/README.md)
+[HANGMAN](./games/hangman/README.md)
+[BATTLESHIP](./games/battleship/README.md)
 
 ## Technology Stack
 
